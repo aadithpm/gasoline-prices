@@ -1,4 +1,5 @@
-const https = require('https');
+const request = require('request');
+
 require('dotenv').config();
 
 const API_KEY = process.env.API_KEY;
@@ -39,24 +40,32 @@ function stripPriceAndDate(json){
     };
 }
 
-function createPriceObjects(calls_list){
-    var prices = [];
-    calls_list.forEach(url => {
-        var body = "";
-        https.get(url, res => {
-            res.on('data', data => {
-                body += data;
-            })
-            res.on('end', () => {
-                console.log(stripPriceAndDate(JSON.parse(body)));
-                // prices.push(stripPriceAndDate(JSON.parse(body)));
-            })
-        })
+function getStatePrice(url){
+    return new Promise((resolve, reject) => {
+        setTimeout(resolve, 10000);
+        request.get(url, (err, res, body) => {
+            if(err){
+                reject(err);
+            }
+            else{
+                resolve(stripPriceAndDate(JSON.parse(body)));
+            }
+        });
     });
 }
 
-function testPrint(){
-    console.log(createPriceObjects(makeUrls(API_KEY, STATES)));
+function createPriceObjects(calls_list){
+    var promises = [];
+
+    calls_list.forEach(url => {
+        promises.push(getStatePrice(url));
+    })
+
+    return Promise.all(promises);
 }
 
-module.exports.testPrint = testPrint;
+function getPrices(){
+    return createPriceObjects(makeUrls(API_KEY, STATES));
+}
+
+module.exports.getPrices = getPrices;
